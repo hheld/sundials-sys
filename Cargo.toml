@@ -1,6 +1,6 @@
 [package]
 name = "sundials-sys"
-version = "0.6.2-msvcstatic"
+version = "0.6.3-msvcstatic"
 authors = [
   "Jason Dark <email@jkdark.com>",
   "Arthur Carcano <arthur.carcano@gmail.fr>",
