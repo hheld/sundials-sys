@@ -1,11 +1,11 @@
+use bindgen::{BindgenError, Bindings};
 use std::{
     collections::HashSet,
     env,
     fs::File,
     io::{BufReader, Read},
-    path::{Path, PathBuf}
+    path::{Path, PathBuf},
 };
-use bindgen::{Bindings, BindgenError};
 
 // SUNDIALS has a few non-negative constants that need to be parsed as an i32.
 // This is an attempt at doing so generally.
@@ -107,7 +107,7 @@ fn build_vendor_sundials(klu: &Library) -> (Library, &'static str) {
         .define("BUILD_IDA", feature!("ida"))
         .define("BUILD_IDAS", feature!("idas"))
         .define("BUILD_KINSOL", feature!("kinsol"))
-		.define("ENABLE_KLU", feature!("klu"))
+        .define("ENABLE_KLU", feature!("klu"))
         .define("OPENMP_ENABLE", feature!("nvecopenmp"))
         .define("PTHREAD_ENABLE", feature!("nvecpthreads"));
     if let Some(inc) = &klu.inc {
@@ -121,11 +121,16 @@ fn build_vendor_sundials(klu: &Library) -> (Library, &'static str) {
     let dst_disp = dst.display();
     let lib_loc = Some(format!("{}/lib", dst_disp));
     let inc_dir = Some(format!("{}/include", dst_disp));
-    (Library { inc: inc_dir, lib: lib_loc }, library_type)
+    (
+        Library {
+            inc: inc_dir,
+            lib: lib_loc,
+        },
+        library_type,
+    )
 }
 
-fn generate_bindings(inc_dirs: &[Option<String>]) -> Result<Bindings, BindgenError>
-{
+fn generate_bindings(inc_dirs: &[Option<String>]) -> Result<Bindings, BindgenError> {
     macro_rules! define {
         ($a:tt, $b:tt) => {
             format!(
@@ -162,31 +167,30 @@ fn generate_bindings(inc_dirs: &[Option<String>]) -> Result<Bindings, BindgenErr
 fn get_sundials_version_major(bindings: impl AsRef<Path>) -> Option<u32> {
     let b = File::open(bindings).expect("Couldn't read file bindings.rs!");
     let mut b = BufReader::new(b).bytes();
-    'version:
-    while b.find(|c| c.as_ref().is_ok_and(|&c| c == b'S')).is_some() {
+    'version: while b.find(|c| c.as_ref().is_ok_and(|&c| c == b'S')).is_some() {
         for c0 in "UNDIALS_VERSION_MAJOR".bytes() {
             match b.next() {
                 Some(Ok(c)) => {
                     if c != c0 {
-                        continue 'version
+                        continue 'version;
                     }
                 }
-                Some(Err(_)) | None => return None
+                Some(Err(_)) | None => return None,
             }
         }
         // Match " : u32 = 6"
         if b.find(|c| c.as_ref().is_ok_and(|&c| c == b'=')).is_some() {
             let is_not_digit = |c: &u8| !c.is_ascii_digit();
             let b = b.skip_while(|c| c.as_ref().is_ok_and(is_not_digit));
-            let v: Vec<_> =
-                b.map_while(|c| c.ok().filter(|c| c.is_ascii_digit()))
+            let v: Vec<_> = b
+                .map_while(|c| c.ok().filter(|c| c.is_ascii_digit()))
                 .collect();
             match String::from_utf8(v) {
                 Ok(v) => return v.parse().ok(),
-                Err(_) => return None
+                Err(_) => return None,
             }
         }
-        return None
+        return None;
     }
     None
 }
@@ -197,8 +201,14 @@ fn main() {
     let klu_lib = env::var("DEP_SUITESPARSE_SUITESPARSE_LIB").ok();
 
     // First, we build the SUNDIALS library, with requested modules with CMake
-    let klu = Library { inc: klu_inc, lib: klu_lib };
-    let mut sundials = Library { inc: None, lib: None };
+    let klu = Library {
+        inc: klu_inc,
+        lib: klu_lib,
+    };
+    let mut sundials = Library {
+        inc: None,
+        lib: None,
+    };
     let mut library_type = "dylib";
     if cfg!(any(feature = "build_libraries", target_family = "wasm")) {
         (sundials, library_type) = build_vendor_sundials(&klu);
@@ -208,7 +218,8 @@ fn main() {
     }
 
     if sundials.lib.is_none() && sundials.inc.is_none() {
-        #[cfg(target_family = "windows")] {
+        #[cfg(target_family = "windows")]
+        {
             let vcpkg = vcpkg::Config::new()
                 .emit_includes(true)
                 .find_package("sundials");
@@ -220,20 +231,23 @@ fn main() {
 
     // Second, we use bindgen to generate the Rust types
 
-    let bindings_rs = PathBuf::from(env::var("OUT_DIR").unwrap())
-        .join("bindings.rs");
+    let bindings_rs = PathBuf::from(env::var("OUT_DIR").unwrap()).join("bindings.rs");
     let mut build_vendor = true;
     let mut sundials_version_major = 0;
     if let Ok(bindings) = generate_bindings(&[sundials.inc, klu.inc.clone()]) {
-        bindings.write_to_file(&bindings_rs)
+        bindings
+            .write_to_file(&bindings_rs)
             .expect("Couldn't write file bindings.rs!");
         if let Some(v) = get_sundials_version_major(&bindings_rs) {
             if v >= 6 {
                 build_vendor = false;
                 sundials_version_major = v;
             } else {
-                println!("cargo:warning=System sundials version = \
-                          {} < 6, will use the vendor version", v);
+                println!(
+                    "cargo:warning=System sundials version = \
+                          {} < 6, will use the vendor version",
+                    v
+                );
             }
         }
     }
@@ -249,10 +263,14 @@ fn main() {
             panic!("Unable to generate bindings of the vendor sundials!");
         }
     }
-    println!("cargo::rustc-check-cfg=cfg(sundials_version_major, \
-        values(\"6\", \"7\"))");
-    println!("cargo:rustc-cfg=sundials_version_major=\"{}\"",
-        sundials_version_major);
+    println!(
+        "cargo::rustc-check-cfg=cfg(sundials_version_major, \
+        values(\"6\", \"7\"))"
+    );
+    println!(
+        "cargo:rustc-cfg=sundials_version_major=\"{}\"",
+        sundials_version_major
+    );
 
     // Third, we let Cargo know about the library files
 
@@ -285,14 +303,29 @@ fn main() {
     macro_rules! link { ($($s:tt),*) => {
         $(if cfg!(feature = $s) { lib_names.push($s) })*
     }}
-    link! ("arkode", "cvode", "cvodes", "ida", "idas", "kinsol",
-        "nvecopenmp", "nvecpthreads");
+    link!(
+        "arkode",
+        "cvode",
+        "cvodes",
+        "ida",
+        "idas",
+        "kinsol",
+        "nvecopenmp",
+        "nvecpthreads"
+    );
 
     for lib_name in &lib_names {
-        println!(
-            "cargo:rustc-link-lib={}=sundials_{}",
-            library_type, lib_name
-        );
+        if std::env::var_os("CARGO_CFG_WINDOWS").is_some() && cfg!(feature = "static_libraries") {
+            println!(
+                "cargo:rustc-link-lib={}=sundials_{}_static",
+                library_type, lib_name
+            );
+        } else {
+            println!(
+                "cargo:rustc-link-lib={}=sundials_{}",
+                library_type, lib_name
+            );
+        }
     }
     // And that's all.
 }
