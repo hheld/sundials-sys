@@ -1,6 +1,6 @@
 [package]
 name = "sundials-sys"
-version = "0.6.3-msvcstatic"
+version = "0.6.3-gnustatic"
 authors = [
   "Jason Dark <email@jkdark.com>",
   "Arthur Carcano <arthur.carcano@gmail.fr>",
@@ -29,6 +29,7 @@ exclude = [
 bindgen = "0.68"
 cmake = "0.1.50"
 pkg-config = { version = "0.3.30", optional = true }
+vcpkg = "0.2.15"
 
 [target.'cfg(target_env = "msvc")'.build-dependencies]
 vcpkg = "0.2.15"

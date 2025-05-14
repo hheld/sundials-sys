@@ -2,7 +2,7 @@ use bindgen::{BindgenError, Bindings};
 use std::{
     collections::HashSet,
     env,
-    fs::File,
+    fs::{self, File},
     io::{BufReader, Read},
     path::{Path, PathBuf},
 };
@@ -275,6 +275,22 @@ fn main() {
     // Third, we let Cargo know about the library files
 
     if let Some(dir) = sundials.lib {
+        let lib_dir = fs::read_dir(&dir).unwrap();
+
+        for entry in lib_dir {
+            let entry = entry.unwrap();
+            let path = entry.path();
+
+            if path.extension().map_or(false, |ext| ext == "lib") {
+                let file_stem = path.file_stem().unwrap().to_str().unwrap();
+                let new_name = format!("lib{}.a", file_stem);
+
+                let new_path = path.with_file_name(&new_name);
+
+                fs::rename(&path, &new_path).unwrap();
+            }
+        }
+
         println!("cargo:rustc-link-search=native={}", dir)
     }
 
@@ -316,10 +332,7 @@ fn main() {
 
     for lib_name in &lib_names {
         if std::env::var_os("CARGO_CFG_WINDOWS").is_some() && cfg!(feature = "static_libraries") {
-            println!(
-                "cargo:rustc-link-lib={}=sundials_{}_static",
-                library_type, lib_name
-            );
+            println!("cargo:rustc-link-lib=static=sundials_{}_static", lib_name);
         } else {
             println!(
                 "cargo:rustc-link-lib={}=sundials_{}",
