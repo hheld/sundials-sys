@@ -26,7 +26,7 @@ exclude = [
 ]
 
 [build-dependencies]
-bindgen = "0.68"
+bindgen = "0.72"
 cmake = "0.1.50"
 pkg-config = { version = "0.3.30", optional = true }
 vcpkg = "0.2.15"

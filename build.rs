@@ -148,6 +148,7 @@ fn generate_bindings(inc_dirs: &[Option<String>]) -> Result<Bindings, BindgenErr
         }
     }
     builder
+        .blocklist_item("__mingw_ldbl_type_t")
         .clang_args(&[
             define!("arkode", ARKODE),
             define!("cvode", CVODE),
@@ -331,7 +332,7 @@ fn main() {
     );
 
     for lib_name in &lib_names {
-        if std::env::var_os("CARGO_CFG_WINDOWS").is_some() && cfg!(feature = "static_libraries") {
+        if cfg!(target_family = "windows") && cfg!(feature = "static_libraries") {
             println!("cargo:rustc-link-lib=static=sundials_{}_static", lib_name);
         } else {
             println!(
