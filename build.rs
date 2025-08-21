@@ -333,7 +333,7 @@ fn main() {
 
     for lib_name in &lib_names {
         if cfg!(target_family = "windows") && cfg!(feature = "static_libraries") {
-            println!("cargo:rustc-link-lib=static=sundials_{}_static", lib_name);
+            println!("cargo:rustc-link-lib=static=sundials_{}", lib_name);
         } else {
             println!(
                 "cargo:rustc-link-lib={}=sundials_{}",
