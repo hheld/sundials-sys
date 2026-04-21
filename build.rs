@@ -141,6 +141,8 @@ fn generate_bindings(inc_dirs: &[Option<String>]) -> Result<Bindings, BindgenErr
         };
     }
 
+    let target = env::var("TARGET").unwrap();
+
     let mut builder = bindgen::Builder::default().header("wrapper.h");
     for dir in inc_dirs {
         if let Some(dir) = dir {
@@ -160,6 +162,8 @@ fn generate_bindings(inc_dirs: &[Option<String>]) -> Result<Bindings, BindgenErr
             define!("nvecopenmp", OPENMP),
             define!("nvecpthreads", PTHREADS),
         ])
+        .clang_arg(format!("--target={}", target))
+        .layout_tests(false)
         .parse_callbacks(Box::new(ParseSignedConstants))
         .parse_callbacks(Box::new(IgnoreMacros::new()))
         .generate()
